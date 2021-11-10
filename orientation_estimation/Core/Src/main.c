@@ -326,7 +326,7 @@ int main(void)
 	  HAL_UART_Transmit(&huart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
 
 
-	  HAL_Delay(200);//5Hz sample
+	  HAL_Delay(200);//50Hz sample
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

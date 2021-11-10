@@ -2106,7 +2106,7 @@ int main(void)
  8001646:	f006 faf0 	bl	8007c2a <HAL_UART_Transmit>
 
 
-	  HAL_Delay(200);//5Hz sample
+	  HAL_Delay(200);//50Hz sample
  800164a:	20c8      	movs	r0, #200	; 0xc8
  800164c:	f001 f8fe 	bl	800284c <HAL_Delay>
   {
