@@ -35,7 +35,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define IMU_GYRO_ACC 0x6B <<1
+#define IMU_GYRO_ACC 0x6B<<1
 
 //gyroscope
 //defining address register locations
@@ -52,8 +52,8 @@
 
 //magnetometer
 //defining address register locations
-#define IMU_MAG 0x1E <<1
-#define CTRL_REG1_M 0x20
+#define IMU_MAG 0x1E<<1
+#define	CTRL_REG1_M 0x20
 #define CTRL_REG2_M 0x21
 #define CTRL_REG3_M 0x22
 #define CTRL_REG4_M 0x23
@@ -117,7 +117,6 @@ void StartDefaultTask(void const * argument);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -152,48 +151,49 @@ int main(void)
   //change
   ///////////////////////////
 
-  HAL_GPIO_TogglePin(D3_GPIO_Port, D3_Pin);
-  HAL_GPIO_TogglePin(D4_GPIO_Port, D4_Pin);
+  HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+  HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
 
   //register holds configuration bit setup for registers
   uint8_t reg[1];
 
   //gyroscope
   reg[0]=0xC0;
-  HAL_I2C_Mem_Write (&hi2c3 , IMU_GYRO_ACC , CTRL_REG1_G , 1, reg , 1, 0x100);
+  HAL_I2C_Mem_Write(&hi2c3,IMU_GYRO_ACC , CTRL_REG1_G, 1, reg, 1, 0x100);
   reg[0]=0x00;
-  HAL_I2C_Mem_Write (&hi2c3 , IMU_GYRO_ACC , CTRL_REG2_G , 1, reg , 1, 0x100);
+  HAL_I2C_Mem_Write(&hi2c3,IMU_GYRO_ACC , CTRL_REG2_G, 1, reg, 1, 0x100);
   reg[0]=0x00;
-  HAL_I2C_Mem_Write (&hi2c3 , IMU_GYRO_ACC , CTRL_REG3_G , 1, reg , 1, 0x100);
+  HAL_I2C_Mem_Write(&hi2c3,IMU_GYRO_ACC , CTRL_REG3_G, 1, reg, 1, 0x100);
   reg[0]=0x38;
-  HAL_I2C_Mem_Write (&hi2c3 , IMU_GYRO_ACC , CTRL_REG4 , 1, reg , 1, 0x100);
+  HAL_I2C_Mem_Write(&hi2c3,IMU_GYRO_ACC , CTRL_REG4, 1, reg, 1, 0x100);
 
 
   //accelerometer
   reg[0]=0x38;
-  HAL_I2C_Mem_Write (&hi2c3 , IMU_GYRO_ACC , CTRL_REG5_XL , 1, reg , 1, 0x100);
+  HAL_I2C_Mem_Write(&hi2c3,IMU_GYRO_ACC , CTRL_REG5_XL, 1, reg, 1, 0x100);
   reg[0]=0x00;
-  HAL_I2C_Mem_Write (&hi2c3 , IMU_GYRO_ACC , CTRL_REG6_XL , 1, reg , 1, 0x100);
+  HAL_I2C_Mem_Write(&hi2c3,IMU_GYRO_ACC , CTRL_REG6_XL, 1, reg, 1, 0x100);
   reg[0]=0x00;
-  HAL_I2C_Mem_Write (&hi2c3 , IMU_GYRO_ACC , CTRL_REG7_XL , 1, reg , 1, 0x100);
+  HAL_I2C_Mem_Write(&hi2c3,IMU_GYRO_ACC , CTRL_REG7_XL, 1, reg, 1, 0x100);
 
 
-  //magnetometer
+  //mag
   reg[0]=0x1C;
-  HAL_I2C_Mem_Write (&hi2c3 ,IMU_MAG , CTRL_REG1_M , 1, reg , 1, 0x100);
+  HAL_I2C_Mem_Write(&hi2c3,IMU_MAG , CTRL_REG1_M, 1, reg, 1, 0x100);
   reg[0]=0x00;
-  HAL_I2C_Mem_Write (&hi2c3 ,IMU_MAG , CTRL_REG2_M , 1, reg , 1, 0x100);
+  HAL_I2C_Mem_Write(&hi2c3,IMU_MAG , CTRL_REG2_M, 1, reg, 1, 0x100);
   reg[0]=0x00;
-  HAL_I2C_Mem_Write (&hi2c3 ,IMU_MAG , CTRL_REG3_M , 1, reg , 1, 0x100);
+  HAL_I2C_Mem_Write(&hi2c3,IMU_MAG , CTRL_REG3_M, 1, reg, 1, 0x100);
   reg[0]=0x00;
-  HAL_I2C_Mem_Write (&hi2c3 ,IMU_MAG , CTRL_REG4_M , 1, reg , 1, 0x100);
+  HAL_I2C_Mem_Write(&hi2c3,IMU_MAG , CTRL_REG4_M, 1, reg, 1, 0x100);
   reg[0]=0x00;
-  HAL_I2C_Mem_Write (&hi2c3 ,IMU_MAG , CTRL_REG5_M , 1, reg , 1, 0x100);
+  HAL_I2C_Mem_Write(&hi2c3,IMU_MAG , CTRL_REG5_M, 1, reg, 1, 0x100);
 
-  double a[3], g[3], m[3];
+
+  double a[3],g[3], m[3];
   uint8_t recieve[6];
   uint8_t buf[50];
-  int16_t i = 0, g_data[3], a_data[3], m_data[3];
+  int16_t i = 0, g_data[3],a_data[3], m_data[3];
   char buffer[30];
   /* USER CODE END 2 */
 
@@ -223,119 +223,119 @@ int main(void)
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
-  osKernelStart();
+//  osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  // HAL_GPIO_TogglePin(LD3_GPIO_Port , LD3_Pin);
-  // HAL_GPIO_TogglePin(LD4_GPIO_Port , LD4_Pin);
+//  HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+//  HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
   while (1)
   {
 	  char st[50]="";
 	  char st1[50]="";
 	  char st2[50]="";
 	  //gyroscope
-	  // HAL_GPIO_TogglePin(LD3_GPIO_Port , LD3_Pin);
-	  // HAL_Delay(200);
+//	  HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+//	  HAL_Delay(200);
 
-	  HAL_I2C_Mem_Read(&hi2c3 , IMU_GYRO_ACC , 0x18 , 1, recieve , 6, 0x100);
-	  for(i=0;i<3;i++)
+	  HAL_I2C_Mem_Read(&hi2c3, IMU_GYRO_ACC, 0x18, 1, recieve, 6, 0x100);
+	  for(i = 0;i<3;i++)
 	  {
-	  g_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
-	  g[i] = (double)g_data[i]*0.007477;//(245/32768)
+		  g_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
+		  g[i] = (double)g_data[i]*0.007477;//(245/32768)
 	  }
 
-	  strcat(st, "vx=");
-	  double_to_char(g[0], buffer);
-	  strcat(st ,buffer);
+	  strcat(st,"vx=");
+	  double_to_char(g[0],buffer);
+	  strcat(st,buffer);
 
-	  strcat(st, "vy=");
-
-
-	  double_to_char(g[1], buffer);
-	  strcat(st ,buffer);
-
-	  strcat(st ,"vz=");
-	  double_to_char(g[2], buffer);
-	  strcat(st, buffer);
+	  strcat(st,"vy=");
 
 
-	  strcat(st, "\r\n");
+	  double_to_char(g[1],buffer);
+	  strcat(st,buffer);
+
+	  strcat(st,"vz=");
+	  double_to_char(g[2],buffer);
+	  strcat(st,buffer);
+
+
+	  strcat(st,"\r\n");
 
 	  strcpy((char*)buf, st);
-	  HAL_UART_Transmit(&huart1, buf, strlen((char*)buf), HAL_MAX_DELAY );
+	  HAL_UART_Transmit(&huart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
 
 
 
 	  //acclerometer
 
 
-	  HAL_I2C_Mem_Read(&hi2c3 , IMU_GYRO_ACC , 0x28 , 1, recieve , 6, 0x100);
-	  for(i = 0;i <3;i++)
+	  HAL_I2C_Mem_Read(&hi2c3, IMU_GYRO_ACC, 0x28, 1, recieve, 6, 0x100);
+	  for(i = 0;i<3;i++)
 	  {
-	  a_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
-	  a[i] = (double)a_data[i]/16384;//(2/32768)
+		  a_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
+	  	  a[i] = (double)a_data[i]/16384;//(2/32768)
 	  }
 
-	  strcat(st1 ,"ax=");
-	  double_to_char(a[0], buffer);
-	  strcat(st1 ,buffer);
+	  strcat(st1,"ax=");
+	  double_to_char(a[0],buffer);
+	  strcat(st1,buffer);
 
-	  strcat(st1 ,"ay=");
-
-
-	  double_to_char(a[1], buffer);
-	  strcat(st1 ,buffer);
-
-	  strcat(st1 ,"az=");
-	  double_to_char(a[2], buffer);
-	  strcat(st1 ,buffer);
+	  strcat(st1,"ay=");
 
 
-	  strcat(st1 ,"\r\n");
+	  double_to_char(a[1],buffer);
+	  strcat(st1,buffer);
 
-	  strcpy ((char*)buf , st1);
-	  HAL_UART_Transmit (& huart1 , buf , strlen ((char*) buf), HAL_MAX_DELAY );
+	  strcat(st1,"az=");
+	  double_to_char(a[2],buffer);
+	  strcat(st1,buffer);
 
-	  //magnetometer
-	  HAL_I2C_Mem_Read (&hi2c3 , IMU_MAG , 0x28 , 1, recieve , 6, 0x100);
-	  for(i = 0;i <3;i++)
+
+	  strcat(st1,"\r\n");
+
+	  strcpy((char*)buf, st1);
+	  HAL_UART_Transmit(&huart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
+
+	  	  //magnetometer
+	  HAL_I2C_Mem_Read(&hi2c3, IMU_MAG, 0x28, 1, recieve, 6, 0x100);
+	  for(i = 0;i<3;i++)
 	  {
-	  m_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
-	  m[i] = (double)m_data[i ]*0.0001221;//(4/32768)
+		  m_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
+		  m[i] = (double)m_data[i]*0.0001221;//(4/32768)
 	  }
-	  strcat(st2 ,"mx=");
-	  double_to_char(m[0], buffer);
-	  strcat(st2 ,buffer);
+	  strcat(st2,"mx=");
+	  double_to_char(m[0],buffer);
+	  strcat(st2,buffer);
 
-	  strcat(st2 ,"my=");
-
-
-	  double_to_char(m[1], buffer);
-	  strcat(st2 ,buffer);
-
-	  strcat(st2 ,"mz=");
-	  double_to_char(m[2], buffer);
-	  strcat(st2 ,buffer);
+	  strcat(st2,"my=");
 
 
-	  strcat(st2 ,"\r\n");
+	  double_to_char(m[1],buffer);
+	  strcat(st2,buffer);
 
-	  strcpy ((char*)buf , st2);
-	  HAL_UART_Transmit (& huart1 , buf , strlen ((char*) buf), HAL_MAX_DELAY );
+	  strcat(st2,"mz=");
+	  double_to_char(m[2],buffer);
+	  strcat(st2,buffer);
 
 
-	  HAL_Delay (200);//5Hz sample
+	  strcat(st2,"\r\n");
+
+	  strcpy((char*)buf, st2);
+	  HAL_UART_Transmit(&huart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
+
+
+	  HAL_Delay(200);//5Hz sample
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
-//function to convert double variables to a char
+//function to conver double variabls to a char
 void double_to_char(double f,char * buffer){
-	gcvt(f,10, buffer);
+    gcvt(f,10,buffer);
 }
 /**
   * @brief System Clock Configuration
@@ -744,7 +744,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOD, RDX_Pin|WRX_DCX_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_13|GPIO_PIN_14, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOG, LD3_Pin|LD4_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : NCS_MEMS_SPI_Pin CSX_Pin OTG_FS_PSO_Pin */
   GPIO_InitStruct.Pin = NCS_MEMS_SPI_Pin|CSX_Pin|OTG_FS_PSO_Pin;
@@ -791,8 +791,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PG13 PG14 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_14;
+  /*Configure GPIO pins : LD3_Pin LD4_Pin */
+  GPIO_InitStruct.Pin = LD3_Pin|LD4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;

@@ -8,12 +8,9 @@ import matplotlib.pyplot as plt
 import serial
 import time
 
-print("Debug 1")
-
 serialPort = serial.Serial(port="COM4", baudrate=115200,
                            bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
 
-print("Debug 2")
 
 serialString = ""
 
@@ -41,6 +38,8 @@ start_time = time.time()
 while 1:
 
     if serialPort.in_waiting > 0:
+
+
 
         serialString = serialPort.readline()
 
