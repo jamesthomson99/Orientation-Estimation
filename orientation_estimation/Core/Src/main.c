@@ -154,10 +154,10 @@ int main(void)
   HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
   HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
 
-  //register holds configuration bit setup for registers
+  // Register holds configuration bit setup for registers
   uint8_t reg[1];
 
-  //gyroscope
+  // Gyroscope
   reg[0]=0xC0;
   HAL_I2C_Mem_Write(&hi2c3,IMU_GYRO_ACC , CTRL_REG1_G, 1, reg, 1, 0x100);
   reg[0]=0x00;
@@ -168,7 +168,7 @@ int main(void)
   HAL_I2C_Mem_Write(&hi2c3,IMU_GYRO_ACC , CTRL_REG4, 1, reg, 1, 0x100);
 
 
-  //accelerometer
+  // Accelerometer
   reg[0]=0x38;
   HAL_I2C_Mem_Write(&hi2c3,IMU_GYRO_ACC , CTRL_REG5_XL, 1, reg, 1, 0x100);
   reg[0]=0x00;
@@ -177,7 +177,7 @@ int main(void)
   HAL_I2C_Mem_Write(&hi2c3,IMU_GYRO_ACC , CTRL_REG7_XL, 1, reg, 1, 0x100);
 
 
-  //mag
+  // Magnetometer
   reg[0]=0x1C;
   HAL_I2C_Mem_Write(&hi2c3,IMU_MAG , CTRL_REG1_M, 1, reg, 1, 0x100);
   reg[0]=0x00;
@@ -228,115 +228,134 @@ int main(void)
   /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-//  HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
-//  HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
+
+  // Global CF variables
+  float pitch_cf, roll_cf, yaw_cf = 0;
+  float weight_cf = 0.98;
+  float DT_cf = 0.01;
+
   while (1)
   {
 	  char st[50]="";
 	  char st1[50]="";
 	  char st2[50]="";
-	  //gyroscope
-//	  HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
-//	  HAL_Delay(200);
 
-	  HAL_I2C_Mem_Read(&hi2c3, IMU_GYRO_ACC, 0x18, 1, recieve, 6, 0x100);
-	  for(i = 0;i<3;i++)
-	  {
-		  g_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
-		  g[i] = (double)g_data[i]*0.007477;//(245/32768)
-	  }
+	  // Receive gyroscope data
 
-	  strcat(st,"vx=");
+	  	  HAL_I2C_Mem_Read(&hi2c3, IMU_GYRO_ACC, 0x18, 1, recieve, 6, 0x100);
+	  	  for(i = 0;i<3;i++)
+	  	  {
+	  		  g_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
+	  		  g[i] = (double)g_data[i]*0.007477;//(245/32768)
+	  	  }
+
+	  	  // Receive accelerometer data
+
+	  	  HAL_I2C_Mem_Read(&hi2c3, IMU_GYRO_ACC, 0x28, 1, recieve, 6, 0x100);
+	  	  for(i = 0;i<3;i++)
+	  	  {
+	  		  a_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
+	  	  	  a[i] = (double)a_data[i]/16384;//(2/32768)
+	  	  }
+
+	  	  // Receive magnetometer data
+
+	  	  HAL_I2C_Mem_Read(&hi2c3, IMU_MAG, 0x28, 1, recieve, 6, 0x100);
+	  	  for(i = 0;i<3;i++)
+	  	  {
+	  		  m_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
+	  		  m[i] = (double)m_data[i]*0.0001221;//(4/32768)
+	  	  }
+
+	  strcat(st,"wx=");
 	  double_to_char(g[0],buffer);
 	  strcat(st,buffer);
-
-	  strcat(st,"vy=");
-
-
+	  strcat(st,"wy=");
 	  double_to_char(g[1],buffer);
 	  strcat(st,buffer);
-
-	  strcat(st,"vz=");
+	  strcat(st,"wz=");
 	  double_to_char(g[2],buffer);
 	  strcat(st,buffer);
-
-
 	  strcat(st,"\r\n");
 
 	  strcpy((char*)buf, st);
 	  HAL_UART_Transmit(&huart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
 
-
-
-	  //acclerometer
-
-
-	  HAL_I2C_Mem_Read(&hi2c3, IMU_GYRO_ACC, 0x28, 1, recieve, 6, 0x100);
-	  for(i = 0;i<3;i++)
-	  {
-		  a_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
-	  	  a[i] = (double)a_data[i]/16384;//(2/32768)
-	  }
-
 	  strcat(st1,"ax=");
 	  double_to_char(a[0],buffer);
 	  strcat(st1,buffer);
-
 	  strcat(st1,"ay=");
-
-
 	  double_to_char(a[1],buffer);
 	  strcat(st1,buffer);
-
 	  strcat(st1,"az=");
 	  double_to_char(a[2],buffer);
 	  strcat(st1,buffer);
-
-
 	  strcat(st1,"\r\n");
 
 	  strcpy((char*)buf, st1);
 	  HAL_UART_Transmit(&huart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
 
-	  	  //magnetometer
-	  HAL_I2C_Mem_Read(&hi2c3, IMU_MAG, 0x28, 1, recieve, 6, 0x100);
-	  for(i = 0;i<3;i++)
-	  {
-		  m_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
-		  m[i] = (double)m_data[i]*0.0001221;//(4/32768)
-	  }
 	  strcat(st2,"mx=");
 	  double_to_char(m[0],buffer);
 	  strcat(st2,buffer);
-
 	  strcat(st2,"my=");
-
-
 	  double_to_char(m[1],buffer);
 	  strcat(st2,buffer);
-
 	  strcat(st2,"mz=");
 	  double_to_char(m[2],buffer);
 	  strcat(st2,buffer);
-
-
 	  strcat(st2,"\r\n");
 
 	  strcpy((char*)buf, st2);
 	  HAL_UART_Transmit(&huart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
 
+	  // 50Hz sample
+	  HAL_Delay(200);
 
-	  HAL_Delay(200);//50Hz sample
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
-//function to conver double variabls to a char
+// Function to convert double variables to a char
 void double_to_char(double f,char * buffer){
     gcvt(f,10,buffer);
 }
+
+//// Receives radian angle and returns degree angle
+//float RAD_TO_DEG(float RAD){
+//    return (180/M_PI) * RAD;
+//}
+//
+//// Receives degree angle and returns radian angle
+//float DEG_TO_RAD(float DEG){
+//    return (M_PI/180) * DEG;
+//}
+//
+//// Complementary filter implementation
+//void CF(float wx, float wy, float wz, float ax, float ay, float az, float mx, float my, float mz){
+//
+//    // Calculate pitch and roll measured by accelerometer
+//    float a_pitch_cf = RAD_TO_DEG(atan2(-ax, sqrt(pow(ay, 2) + pow(az, 2))));
+//    float a_roll_cf = RAD_TO_DEG(atan2(ay, az));
+//
+//    // Calculate yaw measured by magnetometer
+//    float Mx_cf = mx * cos(a_pitch_cf) + mz * sin(a_pitch_cf);
+//    float My_cf = mx * sin(a_roll_cf) * sin(a_pitch_cf) + my * cos(a_roll_cf) - mz * sin(a_roll_cf) * cos(a_pitch_cf);
+//    float m_yaw_cf = RAD_TO_DEG(atan2(-My_cf, Mx_cf));
+//
+//    // Calculate pitch, roll and yaw measured by gyroscope
+//    float g_pitch_cf = RAD_TO_DEG(wy * DT_cf);
+//    float g_roll_cf = RAD_TO_DEG(wx * DT_cf);
+//    float g_yaw_cf = RAD_TO_DEG(wz * DT_cf);
+//
+//    // Update CF pitch, roll and yaw using previous pitch, roll and yaw and values above
+//    pitch_cf = weight_cf * (pitch_cf + g_pitch_cf * DT_cf) + (1 - weight_cf) * a_pitch_cf;
+//    roll_cf = weight_cf * (roll_cf + g_roll_cf * DT_cf) + (1 - weight_cf) * a_roll_cf;
+//    yaw_cf = weight_cf * (yaw_cf + g_yaw_cf * DT_cf) + (1 - weight_cf) * m_yaw_cf;
+//}
+
 /**
   * @brief System Clock Configuration
   * @retval None
