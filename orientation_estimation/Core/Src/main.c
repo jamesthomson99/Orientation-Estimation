@@ -112,18 +112,88 @@ void StartDefaultTask(void const * argument);
 void double_to_char(double, char *);
 double RAD_TO_DEG(double);
 double DEG_TO_RAD(double);
-void CF(double, double, double, double, double, double, double, double, double);
+void CF();
+void predictEKF();
+void updateEKF();
+void EKF();
 
 // Delay for sampling frequency
 const int delay_ms = 20;
 
-// Global CF variables
-double pitch_cf = 0;
-double roll_cf = 0;
-double yaw_cf = 0;
-double weight_cf = 0.1;
-double DT_cf = ((double)delay_ms) / 1000.0;
+// Global measurement variables
+double wx, wy, wz, ax, ay, az, mx, my, mz = 0.0;
 
+// Global CF variables
+double pitch_cf = 0.0;
+double roll_cf = 0.0;
+double yaw_cf = 0.0;
+double weight_cf = 0.9;
+
+// Global EKF variables
+double pitch_ekf = 0.0;
+double roll_ekf = 0.0;
+double yaw_ekf = 0.0;
+double qw, qx, qy, qz = 0.0;
+double qw_new, qx_new, qy_new, qz_new = 0.0;
+
+// Calculate delta T (Sampling frequency)
+double DT = ((double)delay_ms) / 1000.0;
+
+// Initialise standard deviations and variances
+const double ow = 0.02;
+const double oa = 0.008;
+const double om = 0.03;
+const double vw = ow * ow;
+const double va = oa * oa;
+const double vm = om * om;
+
+// Define magnetic dip angle
+const double dip = (-62.17)*(3.14159265359);
+
+// Initialise matrices
+double I[4][4] = {
+    {1,.0, 0.0, 0.0, 0.0},
+    {0.0, 1.0, 0.0, 0.0},
+    {0.0, 0.0, 1.0, 0.0},
+    {0.0, 0.0, 0.0, 1.0}
+};
+
+double P[4][4] = {
+    {1.0, 0.0, 0.0, 0.0},
+    {0.0, 1.0, 0.0, 0.0},
+    {0.0, 0.0, 1.0, 0.0},
+    {0.0, 0.0, 0.0, 1.0}
+};
+
+double F[4][4] = {
+    {0.0, 0.0, 0.0, 0.0},
+    {0.0, 0.0, 0.0, 0.0},
+    {0.0, 0.0, 0.0, 0.0},
+    {0.0, 0.0, 0.0, 0.0}
+};
+
+double R[6][6] = {
+    {va, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {0.0, va, 0.0, 0.0, 0.0, 0.0},
+    {0.0, 0.0, va, 0.0, 0.0, 0.0},
+    {0.0, 0.0, 0.0, vm, 0.0, 0.0},
+    {0.0, 0.0, 0.0, 0.0, vm, 0.0},
+    {0.0, 0.0, 0.0, 0.0, 0.0, vm}
+};
+
+double W[3][3] = {
+    {0.0, 0.0, 0.0},
+    {0.0, 0.0, 0.0},
+    {0.0, 0.0, 0.0},
+    {0.0, 0.0, 0.0}
+};
+
+//double q[4][1] = {
+//    {1.0},
+//    {0.0},
+//    {0.0},
+//    {0.0}
+//};
 
 /* USER CODE END 0 */
 
@@ -255,30 +325,40 @@ int main(void)
 
 	  // Receive gyroscope data
 
-	  	  HAL_I2C_Mem_Read(&hi2c3, IMU_GYRO_ACC, 0x18, 1, recieve, 6, 0x100);
-	  	  for(i = 0;i<3;i++)
-	  	  {
-	  		  g_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
-	  		  g[i] = (double)g_data[i]*0.007477;//(245/32768)
-	  	  }
+	  HAL_I2C_Mem_Read(&hi2c3, IMU_GYRO_ACC, 0x18, 1, recieve, 6, 0x100);
+	  for(i = 0;i<3;i++)
+	  {
+		  g_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
+		  g[i] = (double)g_data[i]*0.007477;//(245/32768)
+	  }
 
-	  	  // Receive accelerometer data
+	  // Receive accelerometer data
 
-	  	  HAL_I2C_Mem_Read(&hi2c3, IMU_GYRO_ACC, 0x28, 1, recieve, 6, 0x100);
-	  	  for(i = 0;i<3;i++)
-	  	  {
-	  		  a_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
-	  	  	  a[i] = (double)a_data[i]/16384;//(2/32768)
-	  	  }
+	  HAL_I2C_Mem_Read(&hi2c3, IMU_GYRO_ACC, 0x28, 1, recieve, 6, 0x100);
+	  for(i = 0;i<3;i++)
+	  {
+		  a_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
+		  a[i] = (double)a_data[i]/16384;//(2/32768)
+	  }
 
-	  	  // Receive magnetometer data
+	  // Receive magnetometer data
 
-	  	  HAL_I2C_Mem_Read(&hi2c3, IMU_MAG, 0x28, 1, recieve, 6, 0x100);
-	  	  for(i = 0;i<3;i++)
-	  	  {
-	  		  m_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
-	  		  m[i] = (double)m_data[i]*0.0001221;//(4/32768)
-	  	  }
+	  HAL_I2C_Mem_Read(&hi2c3, IMU_MAG, 0x28, 1, recieve, 6, 0x100);
+	  for(i = 0;i<3;i++)
+	  {
+		  m_data[i]=(recieve[2*i+1]<<8)|recieve[2*i];
+		  m[i] = (double)m_data[i]*0.0001221;//(4/32768)
+	  }
+
+	  wx = g[0];
+	  wy = g[1];
+	  wz = g[2];
+	  ax = a[0];
+	  ay = a[1];
+	  az = a[2];
+	  mx = m[0];
+	  my = m[1];
+	  mz = m[2];
 
 //	  strcat(st,"gx=");
 //	  double_to_char(g[0],buffer);
@@ -323,7 +403,7 @@ int main(void)
 //	  HAL_UART_Transmit(&huart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
 
 	  // Call CF
-	  CF(g[0], g[1], g[2], a[0], a[1], a[2], m[0], m[1], m[2]);
+	  CF();
 
 	  // Send CF yaw (y), pitch (p), roll (r) via UART to PC to be visualized
 	  strcat(st1, "y");
@@ -371,7 +451,7 @@ double DEG_TO_RAD(double DEG){
 }
 
 // Complementary filter implementation
-void CF(double wx, double wy, double wz, double ax, double ay, double az, double mx, double my, double mz){
+void CF(){
 
     // Calculate pitch and roll measured by accelerometer
 	double a_pitch_cf = RAD_TO_DEG(atan2(-ax, sqrt(pow(ay, 2) + pow(az, 2))));
@@ -383,14 +463,62 @@ void CF(double wx, double wy, double wz, double ax, double ay, double az, double
 	double m_yaw_cf = RAD_TO_DEG(atan2(-My_cf, Mx_cf));
 
     // Calculate pitch, roll and yaw measured by gyroscope
-    double g_pitch_cf = RAD_TO_DEG(wy * DT_cf);
-    double g_roll_cf = RAD_TO_DEG(wx * DT_cf);
-    double g_yaw_cf = RAD_TO_DEG(wz * DT_cf);
+    double g_pitch_cf = RAD_TO_DEG(wy * DT);
+    double g_roll_cf = RAD_TO_DEG(wx * DT);
+    double g_yaw_cf = RAD_TO_DEG(wz * DT);
 
     // Update CF pitch, roll and yaw using previous pitch, roll and yaw and values above
-    pitch_cf = weight_cf * (pitch_cf + g_pitch_cf * DT_cf) + (1 - weight_cf) * a_pitch_cf;
-    roll_cf = weight_cf * (roll_cf + g_roll_cf * DT_cf) + (1 - weight_cf) * a_roll_cf;
-    yaw_cf = weight_cf * (yaw_cf + g_yaw_cf * DT_cf) + (1 - weight_cf) * m_yaw_cf;
+    pitch_cf = weight_cf * (pitch_cf + g_pitch_cf * DT) + (1 - weight_cf) * a_pitch_cf;
+    roll_cf = weight_cf * (roll_cf + g_roll_cf * DT) + (1 - weight_cf) * a_roll_cf;
+    yaw_cf = weight_cf * (yaw_cf + g_yaw_cf * DT) + (1 - weight_cf) * m_yaw_cf;
+}
+
+void predictEKF(){
+
+	qw_new = qw - (DT/2) * wx * qx - (DT/2) * wy * qz - (DT/2) * wz *qz;
+	qx_new = qx - (DT/2) * wx * qw - (DT/2) * wy * qy - (DT/2) * wz *qy;
+	qy_new = qy - (DT/2) * wx * qz - (DT/2) * wy * qw - (DT/2) * wz *qx;
+	qz_new = qz - (DT/2) * wx * qy - (DT/2) * wy * qx - (DT/2) * wz *qw;
+
+	F[0][0] = 1;
+	F[0][1] = - (DT/2) * wx;
+	F[0][2] = - (DT/2) * wy;
+	F[0][3] = - (DT/2) * wz;
+	F[1][0] = (DT/2) * wx;
+	F[1][1] = 1;
+	F[1][2] = (DT/2) * wz;
+	F[1][3] = - (DT/2) * wy;
+	F[2][0] = (DT/2) * wy;
+	F[2][1] = - (DT/2) * wz;
+	F[2][2] = 1;
+	F[2][3] = (DT/2) * wx;
+	F[3][0] = (DT/2) * wz;
+	F[3][1] = (DT/2) * wy;
+	F[3][2] = - (DT/2) * wx;
+	F[3][3] = 1;
+
+	W[0][0] = - (DT/2) * qx;
+	W[0][1] = - (DT/2 * qy);
+	W[0][2] = - (DT/2) * qz;
+	W[1][0] = (DT/2) * qw;
+	W[1][1] = - (DT/2) * qz;
+	W[1][2] = (DT/2) * qy;
+	W[2][0] = (DT/2) * qz;
+	W[2][1] = (DT/2) * qw;
+	W[2][2] = - (DT/2) * qx;
+	W[3][0] = (DT/2) * qy;
+	W[3][1] = (DT/2) * qx;
+	W[3][2] = (DT/2) * qw;
+
+
+}
+
+void updateEKF(){
+
+}
+
+void EKF(){
+
 }
 
 
