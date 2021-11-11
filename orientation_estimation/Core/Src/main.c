@@ -25,6 +25,7 @@
 #include <string.h>
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <math.h>
 
 /* USER CODE END Includes */
 
@@ -108,6 +109,22 @@ void StartDefaultTask(void const * argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+void double_to_char(double, char *);
+float RAD_TO_DEG(float);
+float DEG_TO_RAD(float);
+void CF(float, float, float, float, float, float, float, float, float);
+
+// Delay for sampling frequency
+const int delay_ms = 200;
+
+// Global CF variables
+float pitch_cf = 0;
+float roll_cf = 0;
+float yaw_cf = 0;
+float weight_cf = 0.98;
+float DT_cf = (float)delay_ms / 1000;
+
+
 /* USER CODE END 0 */
 
 /**
@@ -189,12 +206,13 @@ int main(void)
   reg[0]=0x00;
   HAL_I2C_Mem_Write(&hi2c3,IMU_MAG , CTRL_REG5_M, 1, reg, 1, 0x100);
 
-
-  double a[3],g[3], m[3];
+  double a[3], g[3], m[3];
   uint8_t recieve[6];
   uint8_t buf[50];
   int16_t i = 0, g_data[3],a_data[3], m_data[3];
   char buffer[30];
+
+
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -229,11 +247,6 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  // Global CF variables
-  float pitch_cf, roll_cf, yaw_cf = 0;
-  float weight_cf = 0.98;
-  float DT_cf = 0.01;
-
   while (1)
   {
 	  char st[50]="";
@@ -267,50 +280,67 @@ int main(void)
 	  		  m[i] = (double)m_data[i]*0.0001221;//(4/32768)
 	  	  }
 
-	  strcat(st,"wx=");
-	  double_to_char(g[0],buffer);
-	  strcat(st,buffer);
-	  strcat(st,"wy=");
-	  double_to_char(g[1],buffer);
-	  strcat(st,buffer);
-	  strcat(st,"wz=");
-	  double_to_char(g[2],buffer);
-	  strcat(st,buffer);
-	  strcat(st,"\r\n");
+//	  strcat(st,"gx=");
+//	  double_to_char(g[0],buffer);
+//	  strcat(st,buffer);
+//	  strcat(st,"gy=");
+//	  double_to_char(g[1],buffer);
+//	  strcat(st,buffer);
+//	  strcat(st,"gz=");
+//	  double_to_char(g[2],buffer);
+//	  strcat(st,buffer);
+//	  strcat(st,"\r\n");
+//
+//	  strcpy((char*)buf, st);
+//	  HAL_UART_Transmit(&huart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
+//
+//	  strcat(st1,"ax=");
+//	  double_to_char(a[0],buffer);
+//	  strcat(st1,buffer);
+//	  strcat(st1,"ay=");
+//	  double_to_char(a[1],buffer);
+//	  strcat(st1,buffer);
+//	  strcat(st1,"az=");
+//	  double_to_char(a[2],buffer);
+//	  strcat(st1,buffer);
+//	  strcat(st1,"\r\n");
+//
+//	  strcpy((char*)buf, st1);
+//	  HAL_UART_Transmit(&huart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
+//
+//	  strcat(st2,"mx=");
+//	  double_to_char(m[0],buffer);
+//	  strcat(st2,buffer);
+//	  strcat(st2,"my=");
+//	  double_to_char(m[1],buffer);
+//	  strcat(st2,buffer);
+//	  strcat(st2,"mz=");
+//	  double_to_char(m[2],buffer);
+//	  strcat(st2,buffer);
+//	  strcat(st2,"\r\n");
+//
+//	  strcpy((char*)buf, st2);
+//	  HAL_UART_Transmit(&huart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
 
-	  strcpy((char*)buf, st);
-	  HAL_UART_Transmit(&huart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
+	  // Call CF
+	  CF(g[0], g[1], g[2], a[0], a[1], a[2], m[0], m[1], m[2]);
 
-	  strcat(st1,"ax=");
-	  double_to_char(a[0],buffer);
-	  strcat(st1,buffer);
-	  strcat(st1,"ay=");
-	  double_to_char(a[1],buffer);
-	  strcat(st1,buffer);
-	  strcat(st1,"az=");
-	  double_to_char(a[2],buffer);
-	  strcat(st1,buffer);
-	  strcat(st1,"\r\n");
-
+	  // Send CF pitch, roll, yaw via UART to PC
+	  strcat(st1, "pi=");
+	  double_to_char(pitch_cf,buffer);
+	  strcat(st1, buffer);
+	  strcat(st1, "ro=");
+	  double_to_char(roll_cf,buffer);
+	  strcat(st1, buffer);
+	  strcat(st1, "ya=");
+	  double_to_char(yaw_cf,buffer);
+	  strcat(st1, buffer);
+	  strcat(st1, "\r\n");
 	  strcpy((char*)buf, st1);
 	  HAL_UART_Transmit(&huart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
 
-	  strcat(st2,"mx=");
-	  double_to_char(m[0],buffer);
-	  strcat(st2,buffer);
-	  strcat(st2,"my=");
-	  double_to_char(m[1],buffer);
-	  strcat(st2,buffer);
-	  strcat(st2,"mz=");
-	  double_to_char(m[2],buffer);
-	  strcat(st2,buffer);
-	  strcat(st2,"\r\n");
-
-	  strcpy((char*)buf, st2);
-	  HAL_UART_Transmit(&huart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
-
-	  // 50Hz sample
-	  HAL_Delay(200);
+	  // Sample period
+	  HAL_Delay(delay_ms);
 
     /* USER CODE END WHILE */
 
@@ -318,43 +348,45 @@ int main(void)
   }
   /* USER CODE END 3 */
 }
+
 // Function to convert double variables to a char
 void double_to_char(double f,char * buffer){
     gcvt(f,10,buffer);
 }
 
-//// Receives radian angle and returns degree angle
-//float RAD_TO_DEG(float RAD){
-//    return (180/M_PI) * RAD;
-//}
-//
-//// Receives degree angle and returns radian angle
-//float DEG_TO_RAD(float DEG){
-//    return (M_PI/180) * DEG;
-//}
-//
-//// Complementary filter implementation
-//void CF(float wx, float wy, float wz, float ax, float ay, float az, float mx, float my, float mz){
-//
-//    // Calculate pitch and roll measured by accelerometer
-//    float a_pitch_cf = RAD_TO_DEG(atan2(-ax, sqrt(pow(ay, 2) + pow(az, 2))));
-//    float a_roll_cf = RAD_TO_DEG(atan2(ay, az));
-//
-//    // Calculate yaw measured by magnetometer
-//    float Mx_cf = mx * cos(a_pitch_cf) + mz * sin(a_pitch_cf);
-//    float My_cf = mx * sin(a_roll_cf) * sin(a_pitch_cf) + my * cos(a_roll_cf) - mz * sin(a_roll_cf) * cos(a_pitch_cf);
-//    float m_yaw_cf = RAD_TO_DEG(atan2(-My_cf, Mx_cf));
-//
-//    // Calculate pitch, roll and yaw measured by gyroscope
-//    float g_pitch_cf = RAD_TO_DEG(wy * DT_cf);
-//    float g_roll_cf = RAD_TO_DEG(wx * DT_cf);
-//    float g_yaw_cf = RAD_TO_DEG(wz * DT_cf);
-//
-//    // Update CF pitch, roll and yaw using previous pitch, roll and yaw and values above
-//    pitch_cf = weight_cf * (pitch_cf + g_pitch_cf * DT_cf) + (1 - weight_cf) * a_pitch_cf;
-//    roll_cf = weight_cf * (roll_cf + g_roll_cf * DT_cf) + (1 - weight_cf) * a_roll_cf;
-//    yaw_cf = weight_cf * (yaw_cf + g_yaw_cf * DT_cf) + (1 - weight_cf) * m_yaw_cf;
-//}
+// Receives radian angle and returns degree angle
+float RAD_TO_DEG(float RAD){
+    return (180/3.14159265359) * RAD;
+}
+
+// Receives degree angle and returns radian angle
+float DEG_TO_RAD(float DEG){
+    return (3.14159265359/180) * DEG;
+}
+
+// Complementary filter implementation
+void CF(float wx, float wy, float wz, float ax, float ay, float az, float mx, float my, float mz){
+
+    // Calculate pitch and roll measured by accelerometer
+    float a_pitch_cf = RAD_TO_DEG(atan2(-ax, sqrt(pow(ay, 2) + pow(az, 2))));
+    float a_roll_cf = RAD_TO_DEG(atan2(ay, az));
+
+    // Calculate yaw measured by magnetometer
+    float Mx_cf = mx * cos(a_pitch_cf) + mz * sin(a_pitch_cf);
+    float My_cf = mx * sin(a_roll_cf) * sin(a_pitch_cf) + my * cos(a_roll_cf) - mz * sin(a_roll_cf) * cos(a_pitch_cf);
+    float m_yaw_cf = RAD_TO_DEG(atan2(-My_cf, Mx_cf));
+
+    // Calculate pitch, roll and yaw measured by gyroscope
+    float g_pitch_cf = RAD_TO_DEG(wy * DT_cf);
+    float g_roll_cf = RAD_TO_DEG(wx * DT_cf);
+    float g_yaw_cf = RAD_TO_DEG(wz * DT_cf);
+
+    // Update CF pitch, roll and yaw using previous pitch, roll and yaw and values above
+    pitch_cf = weight_cf * (pitch_cf + g_pitch_cf * DT_cf) + (1 - weight_cf) * a_pitch_cf;
+    roll_cf = weight_cf * (roll_cf + g_roll_cf * DT_cf) + (1 - weight_cf) * a_roll_cf;
+    yaw_cf = weight_cf * (yaw_cf + g_yaw_cf * DT_cf) + (1 - weight_cf) * m_yaw_cf;
+}
+
 
 /**
   * @brief System Clock Configuration
