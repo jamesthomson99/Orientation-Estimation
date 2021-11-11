@@ -110,19 +110,19 @@ void StartDefaultTask(void const * argument);
 /* USER CODE BEGIN 0 */
 
 void double_to_char(double, char *);
-float RAD_TO_DEG(float);
-float DEG_TO_RAD(float);
-void CF(float, float, float, float, float, float, float, float, float);
+double RAD_TO_DEG(double);
+double DEG_TO_RAD(double);
+void CF(double, double, double, double, double, double, double, double, double);
 
 // Delay for sampling frequency
-const int delay_ms = 200;
+const int delay_ms = 20;
 
 // Global CF variables
-float pitch_cf = 0;
-float roll_cf = 0;
-float yaw_cf = 0;
-float weight_cf = 0.98;
-float DT_cf = (float)delay_ms / 1000;
+double pitch_cf = 0;
+double roll_cf = 0;
+double yaw_cf = 0;
+double weight_cf = 0.1;
+double DT_cf = ((double)delay_ms) / 1000.0;
 
 
 /* USER CODE END 0 */
@@ -325,17 +325,23 @@ int main(void)
 	  // Call CF
 	  CF(g[0], g[1], g[2], a[0], a[1], a[2], m[0], m[1], m[2]);
 
-	  // Send CF pitch, roll, yaw via UART to PC
-	  strcat(st1, "pi=");
-	  double_to_char(pitch_cf,buffer);
+	  // Send CF yaw (y), pitch (p), roll (r) via UART to PC to be visualized
+	  strcat(st1, "y");
+	  double_to_char(yaw_cf/10, buffer);
 	  strcat(st1, buffer);
-	  strcat(st1, "ro=");
-	  double_to_char(roll_cf,buffer);
+	  strcat(st1, "y");
+
+	  strcat(st1, "p");
+	  double_to_char(pitch_cf, buffer);
 	  strcat(st1, buffer);
-	  strcat(st1, "ya=");
-	  double_to_char(yaw_cf,buffer);
+	  strcat(st1, "p");
+
+	  strcat(st1, "r");
+	  double_to_char(roll_cf, buffer);
 	  strcat(st1, buffer);
-	  strcat(st1, "\r\n");
+	  strcat(st1, "r");
+
+	  strcat(st1, "\n");
 	  strcpy((char*)buf, st1);
 	  HAL_UART_Transmit(&huart1, buf, strlen((char*)buf), HAL_MAX_DELAY);
 
@@ -351,35 +357,35 @@ int main(void)
 
 // Function to convert double variables to a char
 void double_to_char(double f,char * buffer){
-    gcvt(f,10,buffer);
+    gcvt(f, 10, buffer);
 }
 
 // Receives radian angle and returns degree angle
-float RAD_TO_DEG(float RAD){
-    return (180/3.14159265359) * RAD;
+double RAD_TO_DEG(double RAD){
+    return (RAD * (180/3.14159265359));
 }
 
 // Receives degree angle and returns radian angle
-float DEG_TO_RAD(float DEG){
-    return (3.14159265359/180) * DEG;
+double DEG_TO_RAD(double DEG){
+    return (DEG * (3.14159265359/180));
 }
 
 // Complementary filter implementation
-void CF(float wx, float wy, float wz, float ax, float ay, float az, float mx, float my, float mz){
+void CF(double wx, double wy, double wz, double ax, double ay, double az, double mx, double my, double mz){
 
     // Calculate pitch and roll measured by accelerometer
-    float a_pitch_cf = RAD_TO_DEG(atan2(-ax, sqrt(pow(ay, 2) + pow(az, 2))));
-    float a_roll_cf = RAD_TO_DEG(atan2(ay, az));
+	double a_pitch_cf = RAD_TO_DEG(atan2(-ax, sqrt(pow(ay, 2) + pow(az, 2))));
+	double a_roll_cf = RAD_TO_DEG(atan2(ay, az));
 
     // Calculate yaw measured by magnetometer
-    float Mx_cf = mx * cos(a_pitch_cf) + mz * sin(a_pitch_cf);
-    float My_cf = mx * sin(a_roll_cf) * sin(a_pitch_cf) + my * cos(a_roll_cf) - mz * sin(a_roll_cf) * cos(a_pitch_cf);
-    float m_yaw_cf = RAD_TO_DEG(atan2(-My_cf, Mx_cf));
+	double Mx_cf = mx * cos(a_pitch_cf) + mz * sin(a_pitch_cf);
+	double My_cf = mx * sin(a_roll_cf) * sin(a_pitch_cf) + my * cos(a_roll_cf) - mz * sin(a_roll_cf) * cos(a_pitch_cf);
+	double m_yaw_cf = RAD_TO_DEG(atan2(-My_cf, Mx_cf));
 
     // Calculate pitch, roll and yaw measured by gyroscope
-    float g_pitch_cf = RAD_TO_DEG(wy * DT_cf);
-    float g_roll_cf = RAD_TO_DEG(wx * DT_cf);
-    float g_yaw_cf = RAD_TO_DEG(wz * DT_cf);
+    double g_pitch_cf = RAD_TO_DEG(wy * DT_cf);
+    double g_roll_cf = RAD_TO_DEG(wx * DT_cf);
+    double g_yaw_cf = RAD_TO_DEG(wz * DT_cf);
 
     // Update CF pitch, roll and yaw using previous pitch, roll and yaw and values above
     pitch_cf = weight_cf * (pitch_cf + g_pitch_cf * DT_cf) + (1 - weight_cf) * a_pitch_cf;
